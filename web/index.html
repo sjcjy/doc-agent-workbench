@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>文档工作台智能体</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#16213a; --panel2:#1e2b4d; --line:#2a3a5e;
+    --txt:#e8eefc; --sub:#9fb2d8; --acc:#4f8cff; --acc2:#36d399; --warn:#ffb020; --err:#ff6b6b;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:linear-gradient(160deg,#0b1224,#101a33);color:var(--txt);min-height:100vh;padding:18px}
+  .wrap{max-width:1080px;margin:0 auto}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-size:22px;margin:0;display:flex;align-items:center;gap:10px}
+  h1 .dot{width:10px;height:10px;border-radius:50%;background:var(--acc2);box-shadow:0 0 10px var(--acc2)}
+  .badges{display:flex;gap:8px;flex-wrap:wrap}
+  .badge{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--sub)}
+  .badge b{color:var(--txt)}
+  .grid{display:grid;grid-template-columns:320px 1fr;gap:16px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+  .card h2{font-size:14px;margin:0 0 12px;color:var(--sub);font-weight:600;letter-spacing:.5px}
+  label{font-size:13px;color:var(--sub);display:block;margin:10px 0 6px}
+  select,input[type=text],textarea{width:100%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt);border-radius:8px;padding:9px 10px;font-size:14px;font-family:inherit;outline:none}
+  select:focus,input:focus,textarea:focus{border-color:var(--acc)}
+  textarea{resize:vertical;min-height:70px}
+  button{cursor:pointer;border:none;border-radius:8px;font-size:14px;font-weight:600;padding:10px 14px;transition:.15s}
+  .btn-primary{background:var(--acc);color:#fff;width:100%;margin-top:12px}
+  .btn-primary:hover{filter:brightness(1.1)}
+  .btn-primary:disabled{opacity:.5;cursor:wait}
+  .btn-ghost{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .btn-ghost:hover{border-color:var(--acc)}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{font-size:12px;background:var(--panel2);border:1px solid var(--line);color:var(--sub);
+    border-radius:8px;padding:6px 10px;cursor:pointer}
+  .chip:hover{border-color:var(--acc);color:var(--txt)}
+  .filebox{display:flex;gap:8px;align-items:center}
+  .filebox .name{font-size:13px;color:var(--sub);word-break:break-all}
+  .reply{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;
+    font-size:14px;line-height:1.6;white-space:pre-wrap;min-height:40px}
+  .step{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:8px}
+  .step .t{font-size:13px;font-weight:600;color:var(--acc)}
+  .step .a{font-size:12px;color:var(--sub);margin-top:4px;word-break:break-all}
+  .step .ok{color:var(--acc2)} .step .fail{color:var(--err)}
+  .outs{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+  .dl{font-size:13px;background:rgba(79,140,255,.15);border:1px solid var(--acc);color:#cfe0ff;
+    border-radius:8px;padding:7px 12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+  .dl:hover{background:rgba(79,140,255,.3)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);color:var(--sub)}
+  th{color:var(--txt);font-weight:600}
+  .muted{color:var(--sub);font-size:13px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000a;
+    border:1px solid var(--line);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;
+    opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:90%}
+  .toast.show{opacity:1}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid #fff6;border-top-color:#fff;
+    border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="dot"></span>文档工作台智能体</h1>
+    <div class="badges" id="badges"><span class="badge">加载中…</span></div>
+  </header>
+
+  <div class="grid">
+    <!-- 左栏：文档 -->
+    <div>
+      <div class="card">
+        <h2>① 选择 / 上传文档</h2>
+        <label>文档</label>
+        <div class="filebox">
+          <select id="fileSel"></select>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <input type="file" id="upFile" accept=".docx,.txt,.md" style="display:none" />
+          <button class="btn-ghost" id="upBtn" style="flex:1">上传本地文件</button>
+          <button class="btn-ghost" id="hashBtn" style="flex:1">校验原文件</button>
+        </div>
+        <div class="name" id="curFile" style="margin-top:10px"></div>
+        <div class="name" id="hashInfo" style="margin-top:6px;font-size:12px"></div>
+      </div>
+
+      <div class="card">
+        <h2>运行后端</h2>
+        <select id="backend">
+          <option value="auto">auto（有 Key 走 GLM，否则规则）</option>
+          <option value="llm">llm（智谱 GLM 大模型）</option>
+          <option value="rule">rule（离线规则路由）</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 右栏：任务 + 结果 -->
+    <div>
+      <div class="card">
+        <h2>② 下达自然语言任务</h2>
+        <div class="row" style="margin-bottom:8px">
+          <span class="chip" data-q="写一篇关于「季度工作总结」的文档，包含进展、问题、计划三部分">撰写</span>
+          <span class="chip" data-q="把正文里「project@example.com」替换成「team@corp.com」">修改</span>
+          <span class="chip" data-q="把所有标题居中，正文字体改宋体、字号小四、行距1.5倍">格式</span>
+          <span class="chip" data-q="转成 Markdown">转换</span>
+          <span class="chip" data-q="查看这份文档的结构">查看</span>
+        </div>
+        <textarea id="query" placeholder="例如：把所有标题居中，并转成 PDF"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn-primary" id="runBtn" style="flex:1;width:auto;margin-top:0">执行任务</button>
+          <button class="btn-ghost" id="refreshFiles" style="margin-top:0">刷新文档列表</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>③ 执行结果</h2>
+        <div id="status" class="muted">尚未执行。</div>
+        <div id="reply" class="reply" style="display:none"></div>
+        <div id="steps"></div>
+        <div id="outs" class="outs"></div>
+      </div>
+
+      <div class="card">
+        <h2>④ 调用记录</h2>
+        <button class="btn-ghost" id="logBtn" style="margin-bottom:10px">刷新记录</button>
+        <div id="logs" class="muted">点击「刷新记录」查看本次会话的每一步调用。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const api = p => fetch(p, {headers:{'Content-Type':'application/json'}});
+
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+async function loadHealth(){
+  try{
+    const r = await api('/api/health'); const d = await r.json();
+    const key = d.has_model_key ? '✓ 已接入 Key' : '✗ 无 Key（规则模式）';
+    const pdf = Object.entries(d.pdf_backends||{}).map(([k,v])=>`${v?'✓':'✗'}${k}`).join(' ');
+    $('#badges').innerHTML =
+      `<span class="badge">后端 <b>${(d.model_provider||'').toUpperCase()||'—'}</b></span>`+
+      `<span class="badge">模型 <b>${d.model||'—'}</b></span>`+
+      `<span class="badge">${key}</span>`+
+      `<span class="badge">PDF <b>${pdf}</b></span>`;
+  }catch(e){ $('#badges').innerHTML='<span class="badge">服务未连接</span>'; }
+}
+
+async function loadFiles(){
+  const sel = $('#fileSel'); const cur = sel.value;
+  try{
+    const r = await api('/api/files'); const d = await r.json();
+    const files = d.files||[];
+    sel.innerHTML = files.map(f=>`<option value="${f.path}">[${f.kind}] ${f.name}</option>`).join('')
+                  || '<option value="">（暂无文档，请先上传或选样例）</option>';
+    if(cur) sel.value = cur;
+    $('#curFile').textContent = sel.value ? '当前：'+sel.value.split(/[\\/]/).pop() : '';
+  }catch(e){ toast('文档列表加载失败'); }
+}
+
+$('#refreshFiles').onclick = loadFiles;
+$('#fileSel').onchange = ()=> $('#curFile').textContent = '当前：'+ ($('#fileSel').value.split(/[\\/]/).pop());
+
+$('#upBtn').onclick = ()=> $('#upFile').click();
+$('#upFile').onchange = async ()=>{
+  const f = $('#upFile').files[0]; if(!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  toast('上传中…');
+  try{
+    const r = await fetch('/api/upload',{method:'POST',body:fd});
+    const d = await r.json();
+    if(d.ok){ toast('已上传：'+d.name); await loadFiles();
+      const sel=$('#fileSel');
+      for(const o of sel.options){ if(o.value.endsWith(d.name)){ sel.value=o.value; break; } }
+      $('#curFile').textContent='当前：'+d.name; $('#hashInfo').textContent='SHA256前16位：'+d.sha256;
+    } else toast('上传失败：'+(d.detail?.message||'未知错误'));
+  }catch(e){ toast('上传出错'); }
+};
+
+$('#hashBtn').onclick = async ()=>{
+  const p = $('#fileSel').value; if(!p){ toast('请先选择文档'); return; }
+  const r = await api('/api/hash').post ?? null;
+  try{
+    const r = await fetch('/api/hash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:p})});
+    const d = await r.json();
+    $('#hashInfo').textContent = 'SHA256: ' + (d.sha256||'（校验未通过）');
+  }catch(e){ toast('校验失败'); }
+};
+
+document.querySelectorAll('.chip').forEach(c=> c.onclick=()=>{ $('#query').value = c.dataset.q; });
+
+$('#runBtn').onclick = async ()=>{
+  const q = $('#query').value.trim(); if(!q){ toast('请输入任务'); return; }
+  const btn = $('#runBtn'); btn.disabled = true;
+  $('#status').innerHTML = '<span class="spin"></span>执行中…';
+  $('#reply').style.display='none'; $('#steps').innerHTML=''; $('#outs').innerHTML='';
+  try{
+    const r = await fetch('/api/task',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({query:q, file_path:$('#fileSel').value, backend:$('#backend').value})});
+    const d = await r.json();
+    $('#status').innerHTML = d.ok ? '<span style="color:var(--acc2)">✓ 完成</span> · 后端：'+d.backend : '<span style="color:var(--err)">✗ 未完成</span> · 后端：'+(d.backend||'—');
+    if(d.reply){ $('#reply').style.display='block'; $('#reply').textContent = d.reply; }
+    if(d.steps && d.steps.length){
+      $('#steps').innerHTML = '<div class="muted" style="margin-top:10px">调用工具：</div>' +
+        d.steps.map(s=>{
+          const res=s.result||{}; const ok=res.ok!==false;
+          const args=Object.entries(s.args||{}).map(([k,v])=>`${k}=${typeof v==='object'?JSON.stringify(v):v}`).join('，');
+          return `<div class="step"><div class="t">${s.tool||'?'} <span class="${ok?'ok':'fail'}">· ${ok?'成功':'失败 '+(res.code||'')}</span></div>`+
+                 (args?`<div class="a">${args}</div>`:'')+
+                 (res.message?`<div class="a">${res.message}</div>`:'')+</div>`;
+        }).join('');
+    }
+    if(d.outputs && d.outputs.length){
+      $('#outs').innerHTML = '产物：' + d.outputs.map(u=>`<a class="dl" href="${u}" target="_blank">⬇ ${decodeURIComponent(u.split('/').pop())}</a>`).join('');
+    }
+    if(!d.ok && d.suggestion){ $('#status').innerHTML += ' · 建议：'+d.suggestion; }
+  }catch(e){ $('#status').textContent='请求失败：'+e.message; }
+  btn.disabled = false;
+};
+
+$('#logBtn').onclick = async ()=>{
+  try{
+    const r = await fetch('/api/logs?limit=50'); const d = await r.json();
+    const rows = (d.records||[]).slice().reverse();
+    if(!rows.length){ $('#logs').innerHTML='<span class="muted">暂无记录</span>'; return; }
+    $('#logs').innerHTML = '<table><tr><th>时间</th><th>类型</th><th>工具</th><th>动作</th><th>结果</th><th>耗时</th></tr>'+
+      rows.map(x=>`<tr><td>${x.ts||''}</td><td>${x.kind||''}</td><td>${x.tool||''}</td><td>${x.action||''}</td>`+
+        `<td style="color:${x.ok?'var(--acc2)':'var(--err)'}">${x.ok?'OK':'ERR '+x.code}</td><td>${x.elapsed_ms??''}ms</td></tr>`).join('')+'</table>';
+  }catch(e){ toast('记录加载失败'); }
+};
+
+loadHealth(); loadFiles();
+</script>
+</body>
+</html>

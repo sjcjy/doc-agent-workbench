@@ -1,0 +1,27 @@
+# 凭据绝不入库（计划书自查项：.env 未提交）
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 运行时数据（生成的输出、日志、上传文件都不进版本库）
+data/
+logs/
+evidence/
+*.log
+
+# 测试产物
+tests/test_records.xlsx
+tests/__pycache__/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

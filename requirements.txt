@@ -1,0 +1,41 @@
+# 文档工作台智能体 · 依赖清单
+# 推荐环境：Python 3.10+（本项目在 Anaconda envs/llm_course 下开发验证）
+# 安装：pip install -r requirements.txt
+
+# ---- 核心：文档读写 ----
+python-docx>=1.1.0
+python-dotenv>=1.0.0
+
+# ---- Agent：LangChain + 模型接入 ----
+langchain>=1.0.0
+langchain-core>=1.0.0
+langchain-openai>=1.0.0      # 用于接入智谱的 OpenAI 兼容端点
+
+# ---- 界面：Streamlit（课程验收用）----
+streamlit>=1.30.0
+pandas>=2.0.0
+
+# ---- 接口：FastAPI（后续转小程序用同一套）----
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.9
+httpx>=0.27.0
+
+# ---- PDF 渲染兜底 ----
+# 未安装 LibreOffice / Word 时的内置渲染后端；
+# 装了 LibreOffice 保真度最高，会优先使用它
+reportlab>=4.0.0
+
+# ---- PDF → Word（保留排版的 PDF 解析）----
+# 后端按保真度依次尝试：
+#   1) 本机 Microsoft Word（PDF Reflow，表格还原最准，需 Windows + 装了 Office）
+#   2) pdf2docx（纯 Python，跨平台，复杂表格识别较弱）
+#   3) pymupdf（只提取文字重建，最后兜底）
+pdf2docx>=0.5.8
+pymupdf>=1.24.0
+
+# ---- 测试记录导出 ----
+openpyxl>=3.1.0
+
+# 调用本机 Word 做 PDF→Word / DOCX→PDF（Windows 安装后自动启用这两个后端）
+pywin32>=306 ; sys_platform == "win32"
